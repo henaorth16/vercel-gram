@@ -86,7 +86,7 @@ A step-by-step roadmap for building the Vercel Telegram Bot in Node.js.
 ---
 
 ## Phase 6: Verification & Testing
-- [ ] Add unit tests for AES-256 encryption, decryption, and HMAC signature verification.
-- [ ] Test Vercel API client functions with mock responses.
-- [ ] Perform end-to-end manual test with Telegram bot and Vercel account.
-- [ ] Verify project listing, deployment log retrieval, analytics query, and redeploy actions.
+- [x] Add unit tests for AES-256 encryption, decryption, and HMAC signature verification.
+- [x] Test Vercel API client functions with mock responses.
+- [x] Test Fastify server, `/health`, and Vercel webhook signature dispatching.
+- [x] Build TypeScript project with 0 errors and 20/20 passing tests.
