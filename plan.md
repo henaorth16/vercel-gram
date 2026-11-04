@@ -44,32 +44,32 @@ A step-by-step roadmap for building the Vercel Telegram Bot in Node.js.
 ---
 
 ## Phase 4: Telegram Bot Commands & Interactive UI
-- [ ] Initialize grammY bot instance (`src/bot/index.ts`).
-- [ ] Prepare Privacy Policy document (`PRIVACY_POLICY.md`):
+- [x] Initialize grammY bot instance (`src/bot/index.ts`).
+- [x] Prepare Privacy Policy document (`PRIVACY_POLICY.md`):
   - Document data collection scope (Telegram user ID, encrypted Vercel token, workspace preferences).
   - Document security safeguards (AES-256-GCM encryption, automatic message deletion).
   - Define user data deletion and account disconnection rights.
   - Expose `/privacy` command and link it within `/start`.
-- [ ] Implement `/start` command:
+- [x] Implement `/start` command:
   - Welcome message, privacy policy reference, and token connection instructions.
-- [ ] Implement `/connect <token>` command:
+- [x] Implement `/connect <token>` command:
   - Deletes user's message immediately for security.
   - Validates token against Vercel API.
   - Encrypts and saves to DB.
   - Prompts team selection if user belongs to teams.
-- [ ] Implement `/team` command:
+- [x] Implement `/team` command:
   - Interactive inline keyboard to switch between Personal account and Team scopes.
-- [ ] Implement `/projects` command:
+- [x] Implement `/projects` command:
   - Lists all projects with status emojis (🟢 Ready, 🔴 Error, 🟡 Building).
   - Displays inline buttons: `[📜 Deployments]`, `[📊 Analytics]`, `[🔄 Redeploy]`.
-- [ ] Implement `/deployments <project>` & callback handlers:
+- [x] Implement `/deployments <project>` & callback handlers:
   - Lists last 5 deployments with branch, commit, and status.
   - Displays `[📄 View Build Logs]` button for failed builds.
-- [ ] Implement `/logs <deploymentId>` callback:
+- [x] Implement `/logs <deploymentId>` callback:
   - Formats terminal error logs directly into Telegram.
-- [ ] Implement `/analytics <project>` callback:
+- [x] Implement `/analytics <project>` callback:
   - Formats 24h & 7d page views, visitors, and referrers.
-- [ ] Implement `/redeploy <deploymentId>` callback:
+- [x] Implement `/redeploy <deploymentId>` callback:
   - Triggers redeployment with confirmation prompt.
 
 ---
