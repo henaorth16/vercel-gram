@@ -1,0 +1,40 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                 String           @id @default(cuid())
+  telegramId         String           @unique
+  telegramUsername   String?
+  encryptedToken     String
+  tokenIv            String
+  tokenTag           String
+  vercelUserId       String?
+  vercelUsername     String?
+  vercelEmail        String?
+  defaultTeamId      String?
+  notifyOnSuccess    Boolean          @default(true)
+  notifyOnError      Boolean          @default(true)
+  notifyOnCreated    Boolean          @default(false)
+  mutePreviewBuilds  Boolean          @default(false)
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  trackedProjects    TrackedProject[]
+}
+
+model TrackedProject {
+  id          String   @id @default(cuid())
+  userId      String
+  projectId   String
+  projectName String
+  isMuted     Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, projectId])
+}
