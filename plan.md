@@ -31,15 +31,15 @@ A step-by-step roadmap for building the Vercel Telegram Bot in Node.js.
 ---
 
 ## Phase 3: Vercel REST API Client
-- [ ] Implement typed Vercel API client (`src/services/vercel-api.ts`):
-  - [ ] `verifyUser(token)`: Validates token & returns user profile (`GET /v2/user`).
-  - [ ] `getTeams(token)`: Fetches user's teams (`GET /v2/teams`).
-  - [ ] `getProjects(token, teamId?)`: Fetches projects with latest deployment status (`GET /v9/projects`).
-  - [ ] `getProject(token, projectId, teamId?)`: Fetches single project details (`GET /v9/projects/:id`).
-  - [ ] `getDeployments(token, projectId, limit, teamId?)`: Fetches deployment history (`GET /v6/deployments`).
-  - [ ] `getDeploymentLogs(token, deploymentId, teamId?)`: Fetches build & error events (`GET /v2/deployments/:id/events`).
-  - [ ] `redeploy(token, deploymentId, teamId?)`: Triggers a redeployment (`POST /v13/deployments`).
-  - [ ] `getWebAnalytics(token, projectId, teamId?)`: Queries 24h & 7d page views / visitors (`GET /v1/query/web-analytics/visits/count`).
+- [x] Implement typed Vercel API client (`src/services/vercel-api.ts`):
+  - [x] `verifyUser(token)`: Validates token & returns user profile (`GET /v2/user`).
+  - [x] `getTeams(token)`: Fetches user's teams (`GET /v2/teams`).
+  - [x] `getProjects(token, teamId?)`: Fetches projects with latest deployment status (`GET /v9/projects`).
+  - [x] `getProject(token, projectId, teamId?)`: Fetches single project details (`GET /v9/projects/:id`).
+  - [x] `getDeployments(token, projectId, limit, teamId?)`: Fetches deployment history (`GET /v6/deployments`).
+  - [x] `getDeploymentLogs(token, deploymentId, teamId?)`: Fetches build & error events (`GET /v2/deployments/:id/events`).
+  - [x] `redeploy(token, deploymentId, teamId?)`: Triggers a redeployment (`POST /v13/deployments`).
+  - [x] `getWebAnalytics(token, projectId, teamId?)`: Queries 24h & 7d page views / visitors (`GET /v1/query/web-analytics/visits/count`).
 
 ---
 
