@@ -75,13 +75,13 @@ A step-by-step roadmap for building the Vercel Telegram Bot in Node.js.
 ---
 
 ## Phase 5: Webhook Server (Real-Time Notifications)
-- [ ] Initialize Fastify HTTP server (`src/server/app.ts`).
-- [ ] Implement `POST /api/webhook/vercel`:
+- [x] Initialize Fastify HTTP server (`src/server/app.ts`).
+- [x] Implement `POST /api/webhook/vercel`:
   - Validate `x-vercel-signature` via HMAC-SHA1.
   - Parse events: `deployment.created`, `deployment.succeeded`, `deployment.error`, `deployment.canceled`.
   - Look up associated Telegram user in DB.
   - Send formatted notification message to user's Telegram chat with action buttons.
-- [ ] Add `GET /health` endpoint for uptime monitoring.
+- [x] Add `GET /health` endpoint for uptime monitoring.
 
 ---
 
