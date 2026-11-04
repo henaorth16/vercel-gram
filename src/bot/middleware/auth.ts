@@ -23,12 +23,16 @@ export async function authMiddleware(ctx: BotContext, next: NextFunction): Promi
     return;
   }
 
-  // 2. Fetch User Record from Database
-  const dbUser = await prisma.user.findUnique({
-    where: { telegramId: String(telegramUserId) },
-  });
-
-  ctx.dbUser = dbUser;
+  // 2. Fetch User Record from Database safely
+  try {
+    const dbUser = await prisma.user.findUnique({
+      where: { telegramId: String(telegramUserId) },
+    });
+    ctx.dbUser = dbUser;
+  } catch (dbErr) {
+    console.error('Database query error in authMiddleware:', dbErr);
+    ctx.dbUser = null;
+  }
 
   // 3. Attach safe token decryption helper
   ctx.getVercelToken = () => {
