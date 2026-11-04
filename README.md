@@ -20,8 +20,11 @@ A modern, multi-user Telegram bot written in Node.js & TypeScript that lets deve
   * `/analytics <project>`: View 24-hour and 7-day page views and unique visitors.
 * 🏢 **Multi-Workspace & Team Support**:
   * `/team`: Seamlessly toggle between your Personal account and team workspaces.
-* 📡 **Real-Time Push Alerts (Webhooks)**:
-  * Fastify server endpoint (`/api/webhook/vercel`) to receive real-time build notifications (`deployment.succeeded`, `deployment.error`, etc.) with HMAC-SHA1 signature verification.
+* 🗄️ **Turso (libSQL) Distributed SQLite**:
+  * Zero-latency distributed database storage that works flawlessly on Vercel Serverless Functions.
+* 📡 **Dual Deployment Mode**:
+  * **Vercel Serverless**: Runs via API routes (`/api/telegram`, `/api/vercel`, `/api/health`).
+  * **Self-Hosted / VPS / Local**: Fastify server with concurrent long-polling runner.
 
 ---
 
@@ -29,8 +32,9 @@ A modern, multi-user Telegram bot written in Node.js & TypeScript that lets deve
 
 ### 1. Prerequisites
 * Node.js v20+ or v22+
-* Telegram account
-* Vercel account
+* Telegram Bot Token from [@BotFather](https://t.me/BotFather)
+* Vercel Account
+* Turso Database (`libsql://...` and Auth Token)
 
 ### 2. Installation
 ```bash
@@ -56,33 +60,50 @@ BOT_TOKEN=your_telegram_bot_token_from_botfather
 ENCRYPTION_KEY=your_generated_64_character_hex_key
 PORT=3000
 HOST=0.0.0.0
-DATABASE_URL="file:./dev.db"
+
+# Turso Database Configuration
+TURSO_DATABASE_URL="libsql://vercel-gram-henaorth.aws-eu-central-1.turso.io"
+TURSO_AUTH_TOKEN=your_turso_auth_token_here
+
+# Vercel Webhook Secret (Optional)
 VERCEL_WEBHOOK_SECRET=your_optional_webhook_secret
-ALLOWED_TELEGRAM_USERS=
 ```
 
-### 4. Database Setup
-Initialize the local SQLite database:
+### 4. Push Schema to Turso Database
+Once you have pasted your `TURSO_AUTH_TOKEN` in `.env`:
 ```bash
-npm run db:migrate
+npm run db:turso:push
 ```
 
-### 5. Start the Application
-Run in development mode (hot reload):
+---
+
+## Deploying to Vercel
+
+### Step 1: Deploy to Vercel
+You can deploy using GitHub or the Vercel CLI:
 ```bash
-npm run dev
+vercel
 ```
 
-Run in production mode:
-```bash
-npm run build
-npm start
-```
+In your Vercel Project Settings ➔ **Environment Variables**, configure:
+* `BOT_TOKEN`
+* `ENCRYPTION_KEY`
+* `TURSO_DATABASE_URL` (`libsql://vercel-gram-henaorth.aws-eu-central-1.turso.io`)
+* `TURSO_AUTH_TOKEN`
+* `VERCEL_WEBHOOK_SECRET` (optional)
 
-Run automated tests:
+### Step 2: Set the Telegram Webhook
+Once deployed to Vercel, register your Telegram bot webhook URL with one command:
 ```bash
-npm run test
+npm run telegram:webhook -- https://your-deployment.vercel.app
 ```
+*(Telegram will now send all user commands to `https://your-deployment.vercel.app/api/telegram`!)*
+
+### Step 3: Configure Vercel Webhook (Optional for Live Push Alerts)
+In your Vercel Account Settings (or Team Settings) ➔ **Webhooks**:
+* **URL**: `https://your-deployment.vercel.app/api/vercel`
+* **Events**: `deployment.succeeded`, `deployment.error`, `deployment.created`
+* **Secret**: The secret matching `VERCEL_WEBHOOK_SECRET`
 
 ---
 

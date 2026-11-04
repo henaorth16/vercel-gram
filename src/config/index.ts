@@ -12,8 +12,12 @@ const envSchema = z.object({
   HOST: z.string().default('0.0.0.0'),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   DATABASE_URL: z.string().default('file:./dev.db'),
+  TURSO_DATABASE_URL: z.string().optional(),
+  TURSO_AUTH_TOKEN: z.string().optional(),
   VERCEL_WEBHOOK_SECRET: z.string().optional(),
+  TELEGRAM_WEBHOOK_SECRET: z.string().optional(),
   ALLOWED_TELEGRAM_USERS: z.string().optional(),
+  VERCEL_URL: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);
