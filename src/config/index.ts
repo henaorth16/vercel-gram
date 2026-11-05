@@ -23,8 +23,9 @@ const envSchema = z.object({
 const parsed = envSchema.safeParse(process.env);
 
 if (!parsed.success) {
-  console.error('❌ Environment configuration error:', parsed.error.format());
-  process.exit(1);
+  const formatted = JSON.stringify(parsed.error.format(), null, 2);
+  console.error('❌ Environment configuration error:', formatted);
+  throw new Error(`Environment configuration error:\n${formatted}`);
 }
 
 export const config = {
