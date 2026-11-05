@@ -160,6 +160,8 @@ describe('Telegram Update Queue & Idempotency', () => {
     if (!res.success) return;
 
     const mockBot = {
+      isInited: vi.fn().mockReturnValue(true),
+      init: vi.fn().mockResolvedValue(undefined),
       handleUpdate: vi.fn().mockResolvedValue(undefined),
     } as unknown as Bot<BotContext>;
 
@@ -184,6 +186,8 @@ describe('Telegram Update Queue & Idempotency', () => {
     if (!res.success) return;
 
     const mockBot = {
+      isInited: vi.fn().mockReturnValue(true),
+      init: vi.fn().mockResolvedValue(undefined),
       handleUpdate: vi.fn().mockRejectedValue(new Error('Vercel API 500 error')),
     } as unknown as Bot<BotContext>;
 

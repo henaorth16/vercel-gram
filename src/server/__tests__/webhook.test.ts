@@ -13,6 +13,7 @@ describe('Fastify Server & Webhook Endpoints', () => {
   beforeEach(async () => {
     mockBot = {
       isRunning: vi.fn().mockReturnValue(false),
+      isInited: vi.fn().mockReturnValue(true),
       start: vi.fn(),
       init: vi.fn().mockResolvedValue(undefined),
       handleUpdate: vi.fn().mockResolvedValue(undefined),

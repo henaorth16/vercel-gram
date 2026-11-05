@@ -231,6 +231,11 @@ export async function processQueuedUpdate(
   const startTime = Date.now();
 
   try {
+    // Ensure grammY bot is initialized with botInfo before processing updates
+    if (typeof bot.isInited === 'function' && !bot.isInited()) {
+      await bot.init();
+    }
+
     // Execute bot logic via grammY
     await bot.handleUpdate(record.payload as any);
 
