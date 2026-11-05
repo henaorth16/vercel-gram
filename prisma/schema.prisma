@@ -38,3 +38,17 @@ model TrackedProject {
 
   @@unique([userId, projectId])
 }
+
+model TelegramUpdate {
+  id        String   @id @default(cuid())
+  updateId  BigInt   @unique
+  payload   Json
+  status    String   @default("PENDING")
+  attempts  Int      @default(0)
+  lastError String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, createdAt])
+}
+

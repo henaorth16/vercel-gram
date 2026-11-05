@@ -3,6 +3,7 @@ import { BotContext } from '../types.js';
 import { config } from '../../config/index.js';
 import { prisma } from '../../db/client.js';
 import { decryptToken } from '../../security/crypto.js';
+import { logger } from '../../logging/logger.js';
 
 export async function authMiddleware(ctx: BotContext, next: NextFunction): Promise<void> {
   const telegramUserId = ctx.from?.id;
@@ -16,53 +17,45 @@ export async function authMiddleware(ctx: BotContext, next: NextFunction): Promi
     config.allowedUserIds.length > 0 &&
     !config.allowedUserIds.includes(telegramUserId)
   ) {
-    await ctx.reply(
-      '⛔ *Access Denied*\n\nYour Telegram account is not authorized to use this bot.',
-      { parse_mode: 'Markdown' }
-    );
+    if (ctx.chat) {
+      await ctx.reply(
+        '⛔ *Access Denied*\n\nYour Telegram account is not authorized to use this bot.',
+        { parse_mode: 'Markdown' }
+      );
+    }
     return;
   }
 
-  // 2. Fetch User Record from Database safely (Stage 5 Database Operations)
+  // 2. Fetch User Record from Database safely
   const dbStart = Date.now();
-  console.log(
-    JSON.stringify({
-      stage: '5_DATABASE_OPERATION',
-      operation: 'findUniqueUser',
-      telegramId: String(telegramUserId),
-      event: 'start',
-      timestamp: new Date().toISOString(),
-    })
-  );
+  const log = ctx.logger || logger;
 
   try {
     const dbUser = await prisma.user.findUnique({
       where: { telegramId: String(telegramUserId) },
     });
-    console.log(
-      JSON.stringify({
-        stage: '5_DATABASE_OPERATION',
-        operation: 'findUniqueUser',
-        telegramId: String(telegramUserId),
-        event: 'complete',
+    const durationMs = Date.now() - dbStart;
+    log.info(
+      {
+        processing_step: 'auth_lookup',
+        telegram_user_id: String(telegramUserId),
         found: Boolean(dbUser),
-        durationMs: Date.now() - dbStart,
-        timestamp: new Date().toISOString(),
-      })
+        duration_ms: durationMs,
+      },
+      'User lookup completed'
     );
     ctx.dbUser = dbUser;
   } catch (dbErr: any) {
-    console.error(
-      JSON.stringify({
-        stage: '5_DATABASE_OPERATION',
-        operation: 'findUniqueUser',
-        telegramId: String(telegramUserId),
-        event: 'error',
-        errorMessage: dbErr?.message,
-        errorCode: dbErr?.code,
-        durationMs: Date.now() - dbStart,
-        timestamp: new Date().toISOString(),
-      })
+    const durationMs = Date.now() - dbStart;
+    log.error(
+      {
+        processing_step: 'auth_lookup',
+        telegram_user_id: String(telegramUserId),
+        duration_ms: durationMs,
+        error: dbErr?.message,
+        stack: dbErr?.stack,
+      },
+      'Database error during user auth lookup'
     );
     ctx.dbUser = null;
   }
@@ -77,7 +70,13 @@ export async function authMiddleware(ctx: BotContext, next: NextFunction): Promi
         ctx.dbUser.tokenTag
       );
     } catch (err) {
-      console.error('Failed to decrypt Vercel token for user:', telegramUserId, err);
+      log.error(
+        {
+          processing_step: 'token_decrypt',
+          error: err instanceof Error ? err.message : String(err),
+        },
+        'Failed to decrypt Vercel token for user'
+      );
       return null;
     }
   };

@@ -10,7 +10,7 @@ describe('Fastify Server & Webhook Endpoints', () => {
   const secret = 'test_secret_abc123';
   let mockBot: Bot<BotContext>;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     mockBot = {
       isRunning: vi.fn().mockReturnValue(false),
       start: vi.fn(),
@@ -20,6 +20,10 @@ describe('Fastify Server & Webhook Endpoints', () => {
         sendMessage: vi.fn().mockResolvedValue({ message_id: 123 }),
       },
     } as unknown as Bot<BotContext>;
+
+    await prisma.telegramUpdate.deleteMany({
+      where: { updateId: BigInt(998877) },
+    });
   });
 
   it('GET /health and GET /api/health should return 200 ok', async () => {
@@ -109,13 +113,50 @@ describe('Fastify Server & Webhook Endpoints', () => {
     });
 
     expect(response.statusCode).toBe(200);
-    expect(mockBot.handleUpdate).toHaveBeenCalledWith(
-      expect.objectContaining({ update_id: 998877 }),
-      expect.anything()
-    );
+    expect(JSON.parse(response.body).ok).toBe(true);
+
+    await vi.waitFor(() => {
+      expect(mockBot.handleUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({ update_id: 998877 })
+      );
+    });
+
+    // Verify duplicate delivery is deduplicated
+    const duplicateResponse = await server.inject({
+      method: 'POST',
+      url: '/api/telegram',
+      headers: {
+        'content-type': 'application/json',
+        'x-telegram-bot-api-secret-token': 'correct_secret',
+      },
+      payload: JSON.stringify(updatePayload),
+    });
+
+    expect(duplicateResponse.statusCode).toBe(200);
+    expect(JSON.parse(duplicateResponse.body).duplicate).toBe(true);
+    // Should NOT have called handleUpdate a second time
+    expect(mockBot.handleUpdate).toHaveBeenCalledTimes(1);
 
     await server.close();
     (config as any).TELEGRAM_WEBHOOK_SECRET = originalSecret;
+  });
+
+  it('GET /api/telegram/queue should return queue metrics', async () => {
+    const server = await createServer(mockBot);
+
+    const response = await server.inject({
+      method: 'GET',
+      url: '/api/telegram/queue',
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = JSON.parse(response.body);
+    expect(body).toHaveProperty('pending');
+    expect(body).toHaveProperty('processing');
+    expect(body).toHaveProperty('completed');
+    expect(body).toHaveProperty('failed');
+
+    await server.close();
   });
 
   it('POST /api/webhook/vercel should reject invalid signature with 401', async () => {

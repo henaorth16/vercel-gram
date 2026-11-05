@@ -28,35 +28,46 @@ async function main() {
     authToken,
   });
 
-  const migrationPath = path.resolve(
-    __dirname,
-    '../prisma/migrations/20261104213224_init/migration.sql'
-  );
+  const migrationsDir = path.resolve(__dirname, '../prisma/migrations');
+  const migrationDirs = fs
+    .readdirSync(migrationsDir)
+    .filter((d) => fs.statSync(path.join(migrationsDir, d)).isDirectory())
+    .sort();
 
-  const sqlContent = fs.readFileSync(migrationPath, 'utf8');
+  console.log(`Found ${migrationDirs.length} migration folders in ${migrationsDir}`);
 
-  // Split SQL commands by semicolon
-  const statements = sqlContent
-    .split(';')
-    .map((s) => s.trim())
-    .filter((s) => s.length > 0);
+  for (const dir of migrationDirs) {
+    const migrationFile = path.join(migrationsDir, dir, 'migration.sql');
+    if (!fs.existsSync(migrationFile)) continue;
 
-  console.log(`Applying ${statements.length} schema statements to Turso...`);
+    console.log(`Applying migration: ${dir}...`);
+    const sqlContent = fs.readFileSync(migrationFile, 'utf8');
 
-  for (const statement of statements) {
-    try {
-      await client.execute(statement);
-    } catch (err: any) {
-      if (err.message && err.message.includes('already exists')) {
-        console.log(`ℹ️ Already exists: ${statement.slice(0, 30)}...`);
-      } else {
-        console.error('Error executing statement:', statement, err);
-        throw err;
+    // Split SQL commands by semicolon
+    const statements = sqlContent
+      .split(';')
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
+
+    for (const statement of statements) {
+      try {
+        await client.execute(statement);
+      } catch (err: any) {
+        if (
+          err.message &&
+          (err.message.includes('already exists') ||
+            err.message.includes('duplicate column name'))
+        ) {
+          console.log(`ℹ️ Already exists: ${statement.slice(0, 30)}...`);
+        } else {
+          console.error('Error executing statement:', statement, err);
+          throw err;
+        }
       }
     }
   }
 
-  console.log('✅ Successfully applied schema to Turso database!');
+  console.log('✅ Successfully applied all migrations to Turso database!');
 }
 
 main().catch((err) => {

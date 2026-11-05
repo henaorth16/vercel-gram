@@ -2,6 +2,8 @@ import { Bot } from 'grammy';
 import { BotContext } from './types.js';
 import { config } from '../config/index.js';
 import { authMiddleware } from './middleware/auth.js';
+import { extractUpdateMetadata } from '../logging/metadata.js';
+import { createUpdateLogger, logger } from '../logging/logger.js';
 import { handleStart } from './commands/start.js';
 import { handlePrivacy } from './commands/privacy.js';
 import { handleConnect } from './commands/connect.js';
@@ -36,56 +38,48 @@ export function getBot(): Bot<BotContext> {
 export function createBot(): Bot<BotContext> {
   const bot = new Bot<BotContext>(config.BOT_TOKEN);
 
-  // Stage 4: grammY middleware execution logging
+  // Structured logging & Context enrichment middleware
   bot.use(async (ctx, next) => {
     const start = Date.now();
-    const updateId = ctx.update.update_id;
-    const updateType =
-      Object.keys(ctx.update).find((k) => k !== 'update_id') || 'unknown';
-    const command = ctx.message?.text?.startsWith('/')
-      ? ctx.message.text.split(' ')[0]
-      : undefined;
-    const fromUserId = ctx.from?.id;
+    const meta = extractUpdateMetadata(ctx.update);
+    const botLogger = createUpdateLogger({
+      ...meta,
+      processing_step: 'bot_pipeline',
+    });
 
-    console.log(
-      JSON.stringify({
-        stage: '4_MIDDLEWARE_EXECUTION',
+    ctx.updateMeta = meta;
+    ctx.logger = botLogger;
+
+    botLogger.info(
+      {
         event: 'start',
-        updateId,
-        updateType,
-        command,
-        fromUserId,
-        timestamp: new Date().toISOString(),
-      })
+        update_type: meta.update_type,
+        user_id: meta.user_id,
+      },
+      'Bot middleware pipeline started'
     );
 
     try {
       await next();
-      console.log(
-        JSON.stringify({
-          stage: '4_MIDDLEWARE_EXECUTION',
+      const durationMs = Date.now() - start;
+      botLogger.info(
+        {
           event: 'complete',
-          updateId,
-          updateType,
-          command,
-          durationMs: Date.now() - start,
-          timestamp: new Date().toISOString(),
-        })
+          duration_ms: durationMs,
+        },
+        'Bot middleware pipeline completed'
       );
     } catch (err: any) {
-      console.error(
-        JSON.stringify({
-          stage: '4_MIDDLEWARE_EXECUTION',
+      const durationMs = Date.now() - start;
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      botLogger.error(
+        {
           event: 'error',
-          updateId,
-          updateType,
-          command,
-          durationMs: Date.now() - start,
-          errorName: err?.name,
-          errorMessage: err?.message,
-          stack: err?.stack,
-          timestamp: new Date().toISOString(),
-        })
+          duration_ms: durationMs,
+          error: errorMessage,
+          stack: err instanceof Error ? err.stack : undefined,
+        },
+        'Error during bot pipeline execution'
       );
       throw err;
     }
@@ -118,16 +112,17 @@ export function createBot(): Bot<BotContext> {
 
   // Error boundary
   bot.catch((err) => {
-    console.error(
-      JSON.stringify({
-        stage: '4_MIDDLEWARE_EXECUTION',
-        event: 'unhandled_error',
-        updateId: err.ctx?.update?.update_id,
-        errorName: err.name,
-        errorMessage: err.message,
+    const meta = extractUpdateMetadata(err.ctx?.update);
+    logger.error(
+      {
+        update_id: meta.update_id !== undefined ? String(meta.update_id) : undefined,
+        chat_id: meta.chat_id,
+        command: meta.command,
+        processing_step: 'unhandled_bot_error',
+        error: err.message,
         stack: err.stack,
-        timestamp: new Date().toISOString(),
-      })
+      },
+      'Unhandled error in bot runner'
     );
   });
 

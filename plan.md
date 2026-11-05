@@ -90,3 +90,14 @@ A step-by-step roadmap for building the Vercel Telegram Bot in Node.js.
 - [x] Test Vercel API client functions with mock responses.
 - [x] Test Fastify server, `/health`, and Vercel webhook signature dispatching.
 - [x] Build TypeScript project with 0 errors and 20/20 passing tests.
+
+---
+
+## Phase 7: Webhook Lifecycle Decoupling, Idempotency & Structured Logging
+- [x] Decouple Telegram webhook ingestion from command execution (immediate HTTP 200 after durable DB enqueue).
+- [x] Add `TelegramUpdate` database model for idempotency and retry tracking (`updateId`, `payload`, `status`, `attempts`, `lastError`).
+- [x] Implement `@vercel/functions` `waitUntil()` background task runner.
+- [x] Add high-performance structured logging with Pino (`update_id`, `chat_id`, `command`, `processing_step`, `duration_ms`, `error`).
+- [x] Implement safe multi-type Telegram update parser (`message`, `callback_query`, `edited_message`, `channel_post`, `my_chat_member`).
+- [x] Support Turso database schema synchronization with dynamic migration folder iteration.
+- [x] Add unit and integration tests covering metadata extraction, queue status transitions, and deduplication (34/34 passing tests).
