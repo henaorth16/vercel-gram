@@ -1,14 +1,10 @@
 import type { IncomingMessage, ServerResponse } from 'http';
+import { getApp } from '../src/server/app.js';
 
-export default function handler(req: IncomingMessage, res: ServerResponse): void {
-  res.statusCode = 200;
-  res.setHeader('Content-Type', 'application/json');
-  res.end(
-    JSON.stringify({
-      status: 'ok',
-      runtime: 'vercel-serverless',
-      uptime: process.uptime(),
-      timestamp: Date.now(),
-    })
-  );
+export default async function handler(
+  req: IncomingMessage,
+  res: ServerResponse
+): Promise<void> {
+  const app = await getApp();
+  app.server.emit('request', req, res);
 }

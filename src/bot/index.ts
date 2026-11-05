@@ -24,8 +24,72 @@ import {
   handleRedeployExec,
 } from './callbacks/project-actions.js';
 
+let cachedBot: Bot<BotContext> | null = null;
+
+export function getBot(): Bot<BotContext> {
+  if (!cachedBot) {
+    cachedBot = createBot();
+  }
+  return cachedBot;
+}
+
 export function createBot(): Bot<BotContext> {
   const bot = new Bot<BotContext>(config.BOT_TOKEN);
+
+  // Stage 4: grammY middleware execution logging
+  bot.use(async (ctx, next) => {
+    const start = Date.now();
+    const updateId = ctx.update.update_id;
+    const updateType =
+      Object.keys(ctx.update).find((k) => k !== 'update_id') || 'unknown';
+    const command = ctx.message?.text?.startsWith('/')
+      ? ctx.message.text.split(' ')[0]
+      : undefined;
+    const fromUserId = ctx.from?.id;
+
+    console.log(
+      JSON.stringify({
+        stage: '4_MIDDLEWARE_EXECUTION',
+        event: 'start',
+        updateId,
+        updateType,
+        command,
+        fromUserId,
+        timestamp: new Date().toISOString(),
+      })
+    );
+
+    try {
+      await next();
+      console.log(
+        JSON.stringify({
+          stage: '4_MIDDLEWARE_EXECUTION',
+          event: 'complete',
+          updateId,
+          updateType,
+          command,
+          durationMs: Date.now() - start,
+          timestamp: new Date().toISOString(),
+        })
+      );
+    } catch (err: any) {
+      console.error(
+        JSON.stringify({
+          stage: '4_MIDDLEWARE_EXECUTION',
+          event: 'error',
+          updateId,
+          updateType,
+          command,
+          durationMs: Date.now() - start,
+          errorName: err?.name,
+          errorMessage: err?.message,
+          stack: err?.stack,
+          timestamp: new Date().toISOString(),
+        })
+      );
+      throw err;
+    }
+  });
 
   // Global Auth & DB context middleware
   bot.use(authMiddleware);
@@ -54,7 +118,17 @@ export function createBot(): Bot<BotContext> {
 
   // Error boundary
   bot.catch((err) => {
-    console.error('Unhandled error in Telegram Bot update:', err);
+    console.error(
+      JSON.stringify({
+        stage: '4_MIDDLEWARE_EXECUTION',
+        event: 'unhandled_error',
+        updateId: err.ctx?.update?.update_id,
+        errorName: err.name,
+        errorMessage: err.message,
+        stack: err.stack,
+        timestamp: new Date().toISOString(),
+      })
+    );
   });
 
   return bot;

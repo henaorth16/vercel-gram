@@ -4,6 +4,7 @@ import { createServer } from '../app.js';
 import { Bot } from 'grammy';
 import { BotContext } from '../../bot/types.js';
 import { prisma } from '../../db/client.js';
+import { config } from '../../config/index.js';
 
 describe('Fastify Server & Webhook Endpoints', () => {
   const secret = 'test_secret_abc123';
@@ -11,24 +12,110 @@ describe('Fastify Server & Webhook Endpoints', () => {
 
   beforeEach(() => {
     mockBot = {
+      isRunning: vi.fn().mockReturnValue(false),
+      start: vi.fn(),
+      init: vi.fn().mockResolvedValue(undefined),
+      handleUpdate: vi.fn().mockResolvedValue(undefined),
       api: {
         sendMessage: vi.fn().mockResolvedValue({ message_id: 123 }),
       },
     } as unknown as Bot<BotContext>;
   });
 
-  it('GET /health should return 200 ok', async () => {
+  it('GET /health and GET /api/health should return 200 ok', async () => {
     const server = await createServer(mockBot);
-    const response = await server.inject({
+
+    const res1 = await server.inject({
       method: 'GET',
       url: '/health',
     });
+    expect(res1.statusCode).toBe(200);
+    expect(JSON.parse(res1.body).status).toBe('ok');
+
+    const res2 = await server.inject({
+      method: 'GET',
+      url: '/api/health',
+    });
+    expect(res2.statusCode).toBe(200);
+    expect(JSON.parse(res2.body).status).toBe('ok');
+
+    await server.close();
+  });
+
+  it('POST /api/telegram should reject malformed payloads with 400', async () => {
+    const server = await createServer(mockBot);
+
+    const response = await server.inject({
+      method: 'POST',
+      url: '/api/telegram',
+      headers: { 'content-type': 'application/json' },
+      payload: JSON.stringify({ notAnUpdate: true }),
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(JSON.parse(response.body).error).toBe('Invalid Telegram update payload');
+    await server.close();
+  });
+
+  it('POST /api/telegram should reject invalid secret token with 401 when configured', async () => {
+    const originalSecret = config.TELEGRAM_WEBHOOK_SECRET;
+    // Set a test secret
+    (config as any).TELEGRAM_WEBHOOK_SECRET = 'my_expected_secret';
+
+    const server = await createServer(mockBot);
+
+    const response = await server.inject({
+      method: 'POST',
+      url: '/api/telegram',
+      headers: {
+        'content-type': 'application/json',
+        'x-telegram-bot-api-secret-token': 'wrong_secret',
+      },
+      payload: JSON.stringify({ update_id: 12345 }),
+    });
+
+    expect(response.statusCode).toBe(401);
+    await server.close();
+
+    // Restore
+    (config as any).TELEGRAM_WEBHOOK_SECRET = originalSecret;
+  });
+
+  it('POST /api/telegram should accept valid update and delegate to grammY', async () => {
+    const originalSecret = config.TELEGRAM_WEBHOOK_SECRET;
+    (config as any).TELEGRAM_WEBHOOK_SECRET = 'correct_secret';
+
+    const server = await createServer(mockBot);
+
+    const updatePayload = {
+      update_id: 998877,
+      message: {
+        message_id: 1,
+        date: 1700000000,
+        chat: { id: 111, type: 'private' },
+        from: { id: 111, is_bot: false, first_name: 'Tester' },
+        text: '/start',
+      },
+    };
+
+    const response = await server.inject({
+      method: 'POST',
+      url: '/api/telegram',
+      headers: {
+        'content-type': 'application/json',
+        'x-telegram-bot-api-secret-token': 'correct_secret',
+      },
+      payload: JSON.stringify(updatePayload),
+    });
 
     expect(response.statusCode).toBe(200);
-    const body = JSON.parse(response.body);
-    expect(body.status).toBe('ok');
-    expect(body.uptime).toBeDefined();
+    expect(mockBot.handleUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ update_id: 998877 }),
+      expect.anything()
+    );
+
     await server.close();
+    (config as any).TELEGRAM_WEBHOOK_SECRET = originalSecret;
   });
 
   it('POST /api/webhook/vercel should reject invalid signature with 401', async () => {

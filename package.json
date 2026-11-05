@@ -12,6 +12,8 @@
     "db:generate": "prisma generate",
     "db:turso:push": "tsx scripts/push-turso-schema.ts",
     "telegram:webhook": "tsx scripts/set-telegram-webhook.ts",
+    "telegram:webhook:info": "tsx scripts/get-telegram-webhook.ts",
+    "telegram:webhook:delete": "tsx scripts/delete-telegram-webhook.ts",
     "test": "vitest run"
   },
   "keywords": [

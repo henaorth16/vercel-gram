@@ -24,11 +24,19 @@ async function main() {
 
   console.log(`Setting Telegram webhook to: ${webhookUrl}...`);
 
+  const payload: Record<string, any> = {
+    url: webhookUrl,
+    allowed_updates: ['message', 'callback_query'],
+  };
+
+  if (process.env.TELEGRAM_WEBHOOK_SECRET) {
+    payload.secret_token = process.env.TELEGRAM_WEBHOOK_SECRET;
+    console.log('🔒 Configuring webhook with secret token verification.');
+  }
+
   const response = await axios.post(
     `https://api.telegram.org/bot${botToken}/setWebhook`,
-    {
-      url: webhookUrl,
-    }
+    payload
   );
 
   console.log('✅ Telegram Webhook Response:', response.data);
